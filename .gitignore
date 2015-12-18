@@ -1,0 +1,14 @@
+*.txt
+*.swp
+*.csv
+*.pyc
+*.rst
+*.json
+setup*
+LICENSE
+NOTICE
+MANIFEST*
+Makefile
+docs/
+ext/
+requests/
