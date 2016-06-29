@@ -1,3 +1,6 @@
+#!/usr/bin/env
+# -*- coding: utf -*-
+
 import os
 import urllib
 import urllib2
@@ -10,7 +13,7 @@ import re
 import requests
 from requests.auth import HTTPBasicAuth
 
-#sys.path.append('~/Projects/Python')
+sys.path.append('~/Projects/Python')
 
 #if __name__ == "__main__" and __package__ is None:
 #    __package__ = "~/Projects/Python/slack"
@@ -165,6 +168,7 @@ def getDay():
     yearStart = datetime.date(2015,1,1)
     days = today - yearStart
     days = days.days
+    days = datetime.datetime.now().timetuple().tm_yday
     print days
     return days
 
@@ -225,6 +229,7 @@ def changePMStatus(email):
     config = getConfig()
     print json.dumps(config)
     projects = getProjects()
+    #print projects
     users = getUsers()
     print config['user'] + ' ' + config['password']
     auth = 'Basic ' + base64.urlsafe_b64encode('%s:%s' % (getUser(), getPass()))
@@ -238,16 +243,18 @@ def changePMStatus(email):
     for user in users:
         if user['email'] == email:
             data = {
-                "user-assignment": {
-                    "user-id": int(user['id']),
+                "user_assignment": {
+                    "user_id": int(user['id']),
                     "deactivated": False,
-                    "hourly-rate": 0.00,
-                    "is-project-manager": True
+                    "hourly_rate": 0.00,
+                    "is_project_manager": True
                 }
             }
             for project in projects:
-                if project['project']['id'] == 3186242:
-                    data['user-assignment']['project-id'] = int(project['project']['id'])
+                if project['project']['name'].find('ZingChart') == -1:
+                #if project['project']['id'] == 3186242:
+                #if project['project']['active'] == True:
+                    data['user_assignment']['project_id'] = int(project['project']['id'])
                     #data = '<user-assignment>' +\
                     #    '<user-id type="integer">' + str(user['id']) +\
                     #    '</user-id>' +\
@@ -258,15 +265,19 @@ def changePMStatus(email):
                     #    '<is-project-manager type="boolean">true' +\
                     #    '</is-project-manager></user-assignment>'
                     print project['project']['name'] + ': ' + str(project['project']['id'])
-                    theUrl = 'https://' + config['baseUrl'] + '/projects/' + str(project['project']['id']) + '/user_assignments/' + str(user['id'])
-                    print theUrl
-                    print headers
-                    print json.dumps(data)
+                    theUrl = 'https://' + config['baseUrl'] + '/projects/' + str(project['project']['id']) + '/user_assignments'
+                    r = requests.get(url=theUrl,headers=headers)
+                    assignmentList = json.loads(r.text)
+                    for assignment in assignmentList:
+                        if assignment['user_assignment']['user_id'] == int(user['id']):
+                            userAssignmentId = assignment['user_assignment']['id']
+                    theUrl = 'https://pint.harvestapp.com/projects/' + str(project['project']['id']) + '/user_assignments/' + str(userAssignmentId)
+                    #print json.dumps(data)
                     #r = putPMStatus(theUrl, data)
-                    r = requests.put(url=theUrl,data=data,headers=headers)
+                    r = requests.put(url=theUrl,data=json.dumps(data),headers=headers)
                     #r = requests.get(url='https://pint.harvestapp.com/people/'+str(user['id']),auth=(str(config['user']), str(config['password'])))
                     print r.status_code
-                    print r.text
+                    #print r.text
 #    print theUrl
 #    r = requests.get(url='https://'+config['baseUrl']+'/projects.json',auth=auth,params=data)
 #    r = requests.put(url=theUrl,data=data,auth=auth)
@@ -305,7 +316,7 @@ def getDateTime():
         daysBack = 3
     else:
         daysBack = 1 
-    dayInt = getDay() - daysBack + 1
+    dayInt = getDay() - daysBack
     theDate = datetime.date.today() - datetime.timedelta(days=daysBack)
     return [
         dayInt,
@@ -331,11 +342,12 @@ def functionalMess():
         daysBack = 3
     else:
         daysBack = 1
-    dayInt = getDay() - daysBack + 1
+    dayInt = getDay() - daysBack
     theDate = datetime.date.today() - datetime.timedelta(days=daysBack)
     theDateTime = datetime.datetime.combine(theDate, datetime.time(1,0,0))
     calendarList = googleApi.getEvents(theDateTime);
-    print calendarList
+    for item in calendarList:
+        print item
     usersJson = getUsers()
     usersSchedule = getSchedule()
     print usersSchedule
@@ -347,7 +359,7 @@ def functionalMess():
             if user['email'] in usersSchedule:
                 print user['first_name'] + \
                 ' ' + user['last_name']
-                timers = getTimeEntries(str(dayInt),'2015',str(user['id']))
+                timers = getTimeEntries(str(dayInt),'2016',str(user['id']))
                 total = 0
                 if len(timers['day_entries']) > 0:
                     print timers['day_entries'][0]['spent_at']
@@ -367,7 +379,7 @@ def functionalMess():
                     ' Total Hours Recorded: '+ str(total) + '\n' + link
                     slackStr = getString()+'\n'+\
                     ' Total Hours Recorded: '+ str(total) + '\n' + link
-                    toSlack(user['email'], slackStr)
+                    #toSlack(user['email'], slackStr)
                     slackStr += ' *'+user['first_name']+'*'
                     copyEmail = getUser()
                     toSlack(copyEmail, slackStr)
@@ -394,13 +406,13 @@ def workInProgress():
             if user['email'] in usersSchedule:
                 print user['first_name'] + \
                 ' ' + user['last_name']
-                timers = getTimeEntries(str(dayInt),'2015',str(user['id']))
+                timers = getTimeEntries(str(dayInt),'2016',str(user['id']))
                 total = 0
                 if len(timers['day_entries']) > 0:
                     print timers['day_entries'][0]['spent_at']
                     total = totalTimers(timers)
                 print 'Total Hours: ' + str(total)
-                if total < usersSchedule[user['email']]:
+                if total < usersSchedule[user['email']] and user['email'] == 'mmiraglia@pint.com':
                     if not any(user['first_name'] in s for s in nameList):
                         print 'slacking ' + user['first_name']
                         link = 'https://pint.harvestapp.com/' +\
@@ -433,7 +445,7 @@ def workInProgress():
 
 if __name__ == '__main__':
     functionalMess()
-#    emails = ['']
+#    emails = ['rob@pint.com']
 #    for email in emails:
 #        changePMStatus(email)
 
