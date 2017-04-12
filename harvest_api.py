@@ -165,7 +165,7 @@ def roundUserTime(day, year, userID):
 
 def getDay():
     today = datetime.date.today()
-    yearStart = datetime.date(2015,1,1)
+    yearStart = datetime.date(today.year,1,1)
     days = today - yearStart
     days = days.days
     days = datetime.datetime.now().timetuple().tm_yday
@@ -341,7 +341,7 @@ def functionalMess():
     if thisDay.weekday() == 0:
         daysBack = 3
     else:
-        daysBack = 1
+        daysBack = 1 
     dayInt = getDay() - daysBack
     theDate = datetime.date.today() - datetime.timedelta(days=daysBack)
     theDateTime = datetime.datetime.combine(theDate, datetime.time(1,0,0))
@@ -359,13 +359,16 @@ def functionalMess():
             if user['email'] in usersSchedule:
                 print user['first_name'] + \
                 ' ' + user['last_name']
-                timers = getTimeEntries(str(dayInt),'2016',str(user['id']))
+                timers = getTimeEntries(str(dayInt),'2017',str(user['id']))
                 total = 0
                 if len(timers['day_entries']) > 0:
                     print timers['day_entries'][0]['spent_at']
                     total = totalTimers(timers)
                 print 'Total Hours: ' + str(total)
-                if total < usersSchedule[user['email']]:
+                includeBool = True
+                if user['first_name'] <= 'Merrily':
+                    includeBool = False
+                if total < usersSchedule[user['email']] and includeBool:
                     link = 'https://pint.harvestapp.com/' +\
                     'time/day/%s/%s/%s/%s' % \
                     (theDate.strftime('%Y'),theDate.strftime('%m'),\
@@ -375,11 +378,13 @@ def functionalMess():
                     link + ',' + \
                     theDate.strftime('%m/%d/%Y') + '\n'
                     f.write(csvLine)
-                    slackStr = '*It\'s getting towards End of Month*\n'+\
+                    slackStr = '\n'
+                    #slackStr += '*It\'s the End of the Month!!*\n'
+                    #slackStr += '*We NEED your hours!!*\n'
+                    #' Total Hours Recorded: '+ str(total) + '\n' + link
+                    slackStr += getString()+'\n'+\
                     ' Total Hours Recorded: '+ str(total) + '\n' + link
-                    slackStr = getString()+'\n'+\
-                    ' Total Hours Recorded: '+ str(total) + '\n' + link
-                    #toSlack(user['email'], slackStr)
+                    toSlack(user['email'], slackStr)
                     slackStr += ' *'+user['first_name']+'*'
                     copyEmail = getUser()
                     toSlack(copyEmail, slackStr)
@@ -426,7 +431,7 @@ def workInProgress():
                         f.write(csvLine)
                         slackStr = '*It\'s getting towards End of Month*\n'+\
                         ' Total Hours Recorded: '+ str(total) + '\n' + link
-                        slackStr = getString()+'\n'+\
+                        slackStr += getString()+'\n'+\
                         ' Total Hours Recorded: '+ str(total) + '\n' + link
                         toSlack(user['email'], slackStr)
                         slackStr += ' *'+user['first_name']+'*'
