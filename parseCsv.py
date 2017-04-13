@@ -10,7 +10,11 @@ class harvestReport:
             theReader = csv.DictReader(csvfile)
             taskDict = {}
             for row in theReader:
-                dept = row['Task'].split(' - ')[0].strip()
+                splitStr = row['Task'].split(' - ')
+                if len(splitStr) < 2:
+                    dept = 'Internal'
+                else:
+                    dept = splitStr[0].strip()
                 task = row['Task']
                 self.timeEntries.append(row)
                 if not dept in taskDict:
@@ -37,9 +41,12 @@ if __name__ == '__main__':
     taskList = []
     taskString = ''
     for key in r.timeTotals:
+        littleStr = key + '\\n'
         for subkey in r.timeTotals[key]:
             if subkey != 'deptTotal' and subkey != "'---select a task---":
-                taskList.append(subkey + ': ' + str(r.timeTotals[key][subkey]) + '\\n')
+                littleStr += subkey + ': ' + str(r.timeTotals[key][subkey]) + '\\n'
+        print littleStr
+        taskList.append(littleStr)
     taskList.sort()
     for i in taskList:
         taskString += i
